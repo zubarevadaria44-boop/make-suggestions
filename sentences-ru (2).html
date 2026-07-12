@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Собери предложение по-русски</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;700;800&display=swap');
+
+  :root{
+    --paper: #efe2d0;
+    --ink: #4a3622;
+    --ink-soft: #8c7860;
+    --card: #fff9f0;
+    --accent: #a9754e;
+    --accent-2: #6b4a34;
+    --line: #ddccb2;
+    --shadow: rgba(74,54,33,0.16);
+    --good: #5f7a52;
+    --bad: #b0483a;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(169,117,78,0.10), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(107,74,52,0.10), transparent 45%),
+      var(--paper);
+    color: var(--ink);
+    font-family: 'Manrope', sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    padding: 32px 18px 40px;
+    overflow-x:hidden;
+  }
+
+  .noise{
+    position:fixed; inset:0; pointer-events:none; opacity:0.035; z-index:0;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  #confetti{
+    position:fixed; inset:0;
+    width:100%; height:100%;
+    pointer-events:none;
+    z-index:50;
+  }
+
+  .wrap{ width:100%; max-width:480px; position:relative; z-index:1; }
+
+  header{ text-align:center; margin-bottom:22px; }
+  header .kicker{
+    font-size:11px; letter-spacing:0.22em; text-transform:uppercase;
+    color:var(--accent); font-weight:700;
+  }
+  header h1{
+    font-family:'Fraunces', serif; font-weight:600; font-style:italic;
+    font-size:28px; margin:6px 0 0; letter-spacing:-0.01em;
+  }
+
+  .progressRow{ display:flex; align-items:center; gap:10px; margin: 20px 0 8px; }
+  .progressTrack{ flex:1; height:6px; border-radius:6px; background: var(--line); overflow:hidden; }
+  .progressFill{
+    height:100%; border-radius:6px;
+    background: linear-gradient(90deg, var(--accent), #d99a63);
+    width:0%; transition: width 0.4s ease;
+  }
+  .progressLabel{ font-size:12px; color:var(--ink-soft); white-space:nowrap; font-weight:700; }
+  .roundLabel{
+    text-align:center; font-size:12px; color:var(--ink-soft);
+    margin: 0 0 20px; letter-spacing:0.04em;
+  }
+
+  .promptCard{
+    background: var(--card);
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding: 22px 24px;
+    text-align:center;
+    box-shadow: 0 18px 40px -16px var(--shadow), 0 2px 0 rgba(255,255,255,0.5) inset;
+    margin-bottom: 22px;
+    position:relative;
+  }
+  .promptCard .tag{
+    font-size:10px; letter-spacing:0.18em; text-transform:uppercase;
+    color: var(--ink-soft); font-weight:700; margin-bottom:8px;
+  }
+  .promptCard .ru{
+    font-family:'Fraunces', serif;
+    font-weight:600; font-style:italic;
+    font-size:23px; color:var(--ink);
+    line-height:1.3;
+  }
+  .speakBtn{
+    position:absolute; top:14px; right:14px;
+    width:38px; height:38px; border-radius:50%;
+    background: rgba(169,117,78,0.12);
+    border:1.5px solid var(--accent);
+    color:var(--accent);
+    font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+    padding:0;
+  }
+  .speakBtn.speaking{ animation: pulse 0.9s ease-in-out infinite; }
+  @keyframes pulse{
+    0%,100%{ box-shadow: 0 0 0 0 rgba(169,117,78,0.3); }
+    50%{ box-shadow: 0 0 0 8px rgba(169,117,78,0); }
+  }
+
+  .answerZone{
+    min-height: 70px;
+    background: rgba(255,255,255,0.4);
+    border: 2px dashed var(--line);
+    border-radius: 18px;
+    padding: 12px;
+    display:flex; flex-wrap:wrap; gap:8px;
+    align-content:flex-start;
+    margin-bottom: 18px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .answerZone.correct{
+    border-color: var(--good); border-style:solid;
+    background: rgba(95,122,82,0.1);
+  }
+  .answerZone.wrong{
+    border-color: var(--bad); border-style:solid;
+    background: rgba(176,72,58,0.08);
+    animation: shakeZone 0.4s;
+  }
+  @keyframes shakeZone{
+    0%,100%{ transform: translateX(0); }
+    20%{ transform: translateX(-6px); }
+    40%{ transform: translateX(6px); }
+    60%{ transform: translateX(-4px); }
+    80%{ transform: translateX(4px); }
+  }
+
+  .bankZone{
+    display:flex; flex-wrap:wrap; gap:8px;
+    justify-content:center;
+    margin-bottom: 22px;
+    min-height: 48px;
+  }
+
+  .tile{
+    font-family:'Manrope', sans-serif;
+    font-weight:700;
+    font-size:15px;
+    background: var(--card);
+    color: var(--ink);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 14px;
+    cursor:pointer;
+    box-shadow: 0 6px 14px -8px var(--shadow);
+    transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+    user-select:none;
+    animation: tileIn 0.25s ease;
+  }
+  @keyframes tileIn{ from{ opacity:0; transform: translateY(6px);} to{opacity:1; transform:none;} }
+  .tile:active{ transform: scale(0.94); }
+  .tile.placed{
+    background: var(--accent-2);
+    color:#fff9f0;
+    border-color: var(--accent-2);
+  }
+
+  .feedback{
+    text-align:center;
+    font-weight:800;
+    font-size:14px;
+    height: 20px;
+    margin-bottom: 6px;
+    color: var(--ink-soft);
+  }
+  .feedback.correct{ color: var(--good); }
+  .feedback.wrong{ color: var(--bad); }
+
+  .hintRow{
+    text-align:center; font-size:12px; color:var(--ink-soft);
+    margin-bottom: 4px;
+  }
+
+  /* Results screen (shared style with flashcards) */
+  .results{
+    display:none; text-align:center;
+    background: var(--card); border:1px solid var(--line);
+    border-radius:26px; padding: 42px 30px 34px;
+    box-shadow: 0 20px 50px -14px var(--shadow);
+    animation: pop 0.5s cubic-bezier(.2,.9,.3,1.2);
+  }
+  @keyframes pop{ from{ opacity:0; transform: scale(0.92) translateY(10px);} to{opacity:1; transform:none;} }
+  .bravo{
+    display:none;
+    font-family:'Fraunces', serif; font-weight:700; font-style:italic;
+    font-size:38px; letter-spacing:0.01em;
+    background: linear-gradient(120deg, var(--accent), #d99a63, var(--accent-2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    margin: 0 0 6px; opacity:0;
+  }
+  .bravo.show{ animation: bravoPop 0.7s cubic-bezier(.2,.9,.3,1.3) forwards; }
+  @keyframes bravoPop{
+    0%{ opacity:0; transform: scale(0.4) rotate(-6deg); }
+    60%{ opacity:1; transform: scale(1.12) rotate(2deg); }
+    100%{ opacity:1; transform: scale(1) rotate(0deg); }
+  }
+  .results .medal{ font-size:48px; margin-bottom:6px; }
+  .results .big{ font-family:'Fraunces', serif; font-weight:700; font-size:52px; margin:6px 0 2px; }
+  .results .big span{ color: var(--accent); }
+  .results .msg{ font-size:15px; color:var(--ink-soft); margin-bottom:6px; }
+  .results .sub{ font-size:13px; color:var(--ink-soft); margin-bottom:26px; }
+  .stat-row{ display:flex; justify-content:center; gap:26px; margin-bottom:28px; }
+  .stat{ text-align:center; }
+  .stat b{ display:block; font-family:'Fraunces', serif; font-size:24px; }
+  .stat span{ font-size:11px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.08em; }
+  .restart{
+    width:100%; background: var(--accent); color:#fff;
+    padding:16px 0; border-radius:16px; font-weight:800; font-size:15px;
+    border:none; cursor:pointer;
+    box-shadow: 0 12px 24px -10px rgba(169,117,78,0.5);
+  }
+
+  footer{ margin-top:28px; font-size:11px; color: var(--ink-soft); text-align:center; opacity:0.7; }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<canvas id="confetti"></canvas>
+<div class="wrap">
+
+  <header>
+    <div class="kicker">Игра · Составь предложение</div>
+    <h1>Собери фразу на русском</h1>
+  </header>
+
+  <div id="gameArea">
+    <div class="roundLabel" id="roundLabel">Круг 1</div>
+    <div class="progressRow">
+      <div class="progressTrack"><div class="progressFill" id="progressFill"></div></div>
+      <div class="progressLabel" id="progressLabel">0 / 18</div>
+    </div>
+
+    <div class="promptCard">
+      <div class="tag">Переведи на русский</div>
+      <div class="ru" id="enPrompt">—</div>
+    </div>
+
+    <div class="hintRow">👇 нажимай на слова по порядку</div>
+    <div class="answerZone" id="answerZone"></div>
+    <div class="feedback" id="feedback"></div>
+    <div class="bankZone" id="bankZone"></div>
+  </div>
+
+  <div class="results" id="results">
+    <div class="bravo" id="bravoText">Браво!</div>
+    <div class="medal" id="medal">🎉</div>
+    <div class="big" id="bigResult"><span>16</span> / 18</div>
+    <div class="msg" id="resultMsg">Отличный результат!</div>
+    <div class="sub">Предложений собрано с первой попытки</div>
+    <div class="stat-row">
+      <div class="stat"><b id="statRounds">1</b><span>кругов</span></div>
+      <div class="stat"><b id="statRetries">4</b><span>повторов</span></div>
+      <div class="stat"><b id="statTotal">18</b><span>предложений</span></div>
+    </div>
+    <button class="restart" id="restartBtn">↺ Начать сначала</button>
+  </div>
+
+  <footer>Неверные предложения вернутся в конце круга</footer>
+</div>
+
+<script>
+const SENTENCES = [
+  { en: "I want to help.", tiles: ["Я", "хочу", "помочь"] },
+  { en: "I need help today.", tiles: ["Мне", "нужна", "помощь", "сегодня"] },
+  { en: "Can you please help me?", tiles: ["Ты", "можешь", "пожалуйста", "помочь", "мне"] },
+  { en: "I don't understand.", tiles: ["Я", "не", "понимаю"] },
+  { en: "She is ready.", tiles: ["Она", "готова"] },
+  { en: "He can help you.", tiles: ["Он", "может", "помочь", "тебе"] },
+  { en: "We understand you.", tiles: ["Мы", "понимаем", "тебя"] },
+  { en: "They think it is great.", tiles: ["Они", "думают", "это", "отлично"] },
+  { en: "Maybe tomorrow.", tiles: ["Может", "быть", "завтра"] },
+  { en: "I will try tomorrow.", tiles: ["Я", "попробую", "завтра"] },
+  { en: "Good morning! I am ready.", tiles: ["Доброе", "утро", "Я", "готова"] },
+  { en: "Good afternoon! We are ready.", tiles: ["Добрый", "день", "Мы", "готовы"] },
+  { en: "Good evening! It is ready.", tiles: ["Добрый", "вечер", "Всё", "готово"] },
+  { en: "Of course I can help.", tiles: ["Конечно", "я", "могу", "помочь"] },
+  { en: "Please make it today.", tiles: ["Пожалуйста", "сделай", "это", "сегодня"] },
+  { en: "It is very good homework.", tiles: ["Это", "очень", "хорошая", "домашняя", "работа"] },
+  { en: "I know it is good.", tiles: ["Я", "знаю", "это", "хорошо"] },
+  { en: "It is great because you help.", tiles: ["Это", "отлично", "потому", "что", "ты", "помогаешь"] }
+];
+
+const TOTAL = SENTENCES.length;
+
+let deck = [];
+let currentIndex = 0;
+let round = 1;
+let retries = 0;
+let firstTryCorrect = new Set();
+let attemptedThisSentence = false;
+
+let bankTiles = [];   // tiles remaining in the bank {text, uid}
+let placedTiles = []; // tiles placed in the answer zone, in order
+
+const roundLabel = document.getElementById('roundLabel');
+const progressFill = document.getElementById('progressFill');
+const progressLabel = document.getElementById('progressLabel');
+const enPrompt = document.getElementById('enPrompt');
+const answerZone = document.getElementById('answerZone');
+const bankZone = document.getElementById('bankZone');
+const feedback = document.getElementById('feedback');
+const gameArea = document.getElementById('gameArea');
+const results = document.getElementById('results');
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function speakRussian(text, onDone){
+  if(!('speechSynthesis' in window)){
+    if(onDone) setTimeout(onDone, 400);
+    return;
+  }
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'ru-RU';
+  utter.rate = 0.95;
+  let finished = false;
+  const finish = ()=>{
+    if(finished) return;
+    finished = true;
+    if(onDone) onDone();
+  };
+  utter.onend = finish;
+  utter.onerror = finish;
+  // safety net in case the voice never fires onend (happens on some browsers)
+  setTimeout(finish, Math.max(1800, text.length * 110));
+  speechSynthesis.speak(utter);
+}
+
+function initGame(){
+  deck = shuffle(SENTENCES.map((s,i)=>({...s, id:i})));
+  currentIndex = 0;
+  round = 1;
+  retries = 0;
+  firstTryCorrect = new Set();
+  gameArea.style.display = 'block';
+  results.style.display = 'none';
+  roundLabel.textContent = 'Круг 1';
+  loadSentence();
+}
+
+function loadSentence(){
+  speechSynthesis.cancel();
+  const s = deck[currentIndex];
+  enPrompt.textContent = s.en;
+  bankTiles = shuffle(s.tiles.map((t,i)=>({text:t, uid: i + '-' + Math.random()})));
+  placedTiles = [];
+  attemptedThisSentence = false;
+  feedback.textContent = '';
+  feedback.className = 'feedback';
+  answerZone.className = 'answerZone';
+  render();
+  updateProgress();
+}
+
+function render(){
+  answerZone.innerHTML = '';
+  placedTiles.forEach(t=>{
+    const btn = document.createElement('button');
+    btn.className = 'tile placed';
+    btn.textContent = t.text;
+    btn.onclick = ()=> returnTile(t.uid);
+    answerZone.appendChild(btn);
+  });
+
+  bankZone.innerHTML = '';
+  bankTiles.forEach(t=>{
+    const btn = document.createElement('button');
+    btn.className = 'tile';
+    btn.textContent = t.text;
+    btn.onclick = ()=> placeTile(t.uid);
+    bankZone.appendChild(btn);
+  });
+}
+
+function placeTile(uid){
+  const idx = bankTiles.findIndex(t=>t.uid === uid);
+  if(idx === -1) return;
+  const [tile] = bankTiles.splice(idx, 1);
+  placedTiles.push(tile);
+  feedback.textContent = '';
+  feedback.className = 'feedback';
+  answerZone.className = 'answerZone';
+  render();
+
+  if(bankTiles.length === 0){
+    speakRussian(tile.text, () => checkAnswer());
+  } else {
+    speakRussian(tile.text);
+  }
+}
+
+function returnTile(uid){
+  const idx = placedTiles.findIndex(t=>t.uid === uid);
+  if(idx === -1) return;
+  const [tile] = placedTiles.splice(idx, 1);
+  bankTiles.push(tile);
+  feedback.textContent = '';
+  feedback.className = 'feedback';
+  answerZone.className = 'answerZone';
+  render();
+}
+
+function checkAnswer(){
+  const s = deck[currentIndex];
+  const built = placedTiles.map(t=>t.text);
+  const isCorrect = JSON.stringify(built) === JSON.stringify(s.tiles);
+
+  if(isCorrect){
+    answerZone.classList.add('correct');
+    feedback.textContent = 'Верно! ✓';
+    feedback.className = 'feedback correct';
+
+    if(!attemptedThisSentence){
+      firstTryCorrect.add(s.id);
+    }
+
+    speakRussian(built.join(' '), () => advance(true));
+  } else {
+    answerZone.classList.add('wrong');
+    feedback.textContent = 'Не совсем — попробуй ещё раз';
+    feedback.className = 'feedback wrong';
+    if(!attemptedThisSentence){
+      retries++;
+      attemptedThisSentence = true;
+    }
+    setTimeout(()=>{
+      answerZone.classList.remove('wrong');
+    }, 400);
+  }
+}
+
+function advance(known){
+  if(known){
+    deck.splice(currentIndex, 1);
+  } else {
+    const item = deck.splice(currentIndex, 1)[0];
+    deck.push(item);
+  }
+
+  if(deck.length === 0){
+    showResults();
+    return;
+  }
+
+  if(currentIndex >= deck.length){
+    currentIndex = 0;
+    round++;
+    roundLabel.textContent = `Круг ${round}`;
+  }
+
+  loadSentence();
+}
+
+function updateProgress(){
+  progressLabel.textContent = `${currentIndex + 1} / ${deck.length}`;
+  progressFill.style.width = `${(currentIndex / deck.length) * 100}%`;
+}
+
+document.getElementById('restartBtn').addEventListener('click', initGame);
+
+/* ---- confetti (perfect-score celebration) ---- */
+const confettiCanvas = document.getElementById('confetti');
+const ctx = confettiCanvas.getContext('2d');
+let confettiParticles = [];
+let confettiRAF = null;
+
+function resizeConfetti(){
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeConfetti);
+resizeConfetti();
+
+const CONFETTI_COLORS = ['#a9754e', '#6b4a34', '#d99a63', '#efe2d0', '#8c7860', '#fff9f0'];
+
+function launchConfetti(){
+  confettiParticles = [];
+  const count = 140;
+  for(let i=0;i<count;i++){
+    confettiParticles.push({
+      x: Math.random() * confettiCanvas.width,
+      y: -20 - Math.random() * confettiCanvas.height * 0.4,
+      w: 6 + Math.random() * 6,
+      h: 8 + Math.random() * 10,
+      color: CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)],
+      speedY: 2 + Math.random() * 3,
+      speedX: (Math.random() - 0.5) * 2,
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 10,
+      opacity: 1,
+      life: 0,
+      maxLife: 220 + Math.random() * 60
+    });
+  }
+  if(confettiRAF) cancelAnimationFrame(confettiRAF);
+  animateConfetti();
+}
+
+function animateConfetti(){
+  ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  let alive = false;
+
+  confettiParticles.forEach(p=>{
+    p.life++;
+    if(p.life > p.maxLife) return;
+    alive = true;
+
+    p.y += p.speedY;
+    p.x += p.speedX + Math.sin(p.life * 0.05) * 0.6;
+    p.rotation += p.rotationSpeed;
+    if(p.life > p.maxLife * 0.75){
+      p.opacity = 1 - (p.life - p.maxLife * 0.75) / (p.maxLife * 0.25);
+    }
+
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rotation * Math.PI / 180);
+    ctx.globalAlpha = Math.max(p.opacity, 0);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+    ctx.restore();
+  });
+
+  if(alive){
+    confettiRAF = requestAnimationFrame(animateConfetti);
+  } else {
+    ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  }
+}
+
+function showResults(){
+  gameArea.style.display = 'none';
+  results.style.display = 'block';
+
+  const correct = firstTryCorrect.size;
+  document.getElementById('bigResult').innerHTML = `<span>${correct}</span> / ${TOTAL}`;
+  document.getElementById('statRounds').textContent = round;
+  document.getElementById('statRetries').textContent = retries;
+  document.getElementById('statTotal').textContent = TOTAL;
+
+  const pct = correct / TOTAL;
+  const bravoEl = document.getElementById('bravoText');
+  bravoEl.classList.remove('show');
+  let medal, msg;
+
+  if(pct === 1){
+    medal = '🏆'; msg = 'Все предложения с первого раза — идеально!';
+    bravoEl.style.display = 'block';
+    void bravoEl.offsetWidth;
+    bravoEl.classList.add('show');
+    launchConfetti();
+  } else if(pct >= 0.8){
+    medal = '🎉'; msg = 'Отличный результат!';
+    bravoEl.style.display = 'none';
+  } else if(pct >= 0.5){
+    medal = '👏'; msg = 'Неплохо, но есть куда расти.';
+    bravoEl.style.display = 'none';
+  } else {
+    medal = '🌱'; msg = 'Начало положено — продолжай тренироваться.';
+    bravoEl.style.display = 'none';
+  }
+  document.getElementById('medal').textContent = medal;
+  document.getElementById('resultMsg').textContent = msg;
+}
+
+initGame();
+</script>
+</body>
+</html>
