@@ -326,24 +326,50 @@ function shuffle(arr){
   return a;
 }
 
+let speechQueue = [];
+let isSpeaking = false;
+
 function speakRussian(text, onDone){
+  speechQueue.push({ text, onDone });
+  processSpeechQueue();
+}
+
+function clearSpeechQueue(){
+  speechQueue = [];
+  isSpeaking = false;
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+}
+
+function processSpeechQueue(){
+  if(isSpeaking || speechQueue.length === 0) return;
+  isSpeaking = true;
+  const item = speechQueue.shift();
+
   if(!('speechSynthesis' in window)){
-    if(onDone) setTimeout(onDone, 400);
+    isSpeaking = false;
+    if(item.onDone) item.onDone();
+    processSpeechQueue();
     return;
   }
-  const utter = new SpeechSynthesisUtterance(text);
+
+  const utter = new SpeechSynthesisUtterance(item.text.toLowerCase());
   utter.lang = 'ru-RU';
   utter.rate = 0.95;
+
   let finished = false;
   const finish = ()=>{
     if(finished) return;
     finished = true;
-    if(onDone) onDone();
+    isSpeaking = false;
+    if(item.onDone) item.onDone();
+    processSpeechQueue();
   };
+
   utter.onend = finish;
   utter.onerror = finish;
   // safety net in case the voice never fires onend (happens on some browsers)
-  setTimeout(finish, Math.max(1800, text.length * 110));
+  setTimeout(finish, Math.max(1800, item.text.length * 110));
+
   speechSynthesis.speak(utter);
 }
 
@@ -360,7 +386,7 @@ function initGame(){
 }
 
 function loadSentence(){
-  speechSynthesis.cancel();
+  clearSpeechQueue();
   const s = deck[currentIndex];
   enPrompt.textContent = s.en;
   bankTiles = shuffle(s.tiles.map((t,i)=>({text:t, uid: i + '-' + Math.random()})));
